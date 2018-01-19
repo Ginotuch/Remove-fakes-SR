@@ -1,7 +1,7 @@
 """
 This will check Sonarr and Radarr or fake downloads and delete/blacklist accordingly.
 Only works on HTTP not HTTPS.
-Only works if using HTTPauth (browser popup) login. No security or form login will not work
+Only works if using HTTP auth (browser popup) login. No security or form login will not work
 
 Q: "Why don't you make it work with https, or other login methods?"
 A: "I made this for my setup, if you want to add support for other setups, feel free"
@@ -32,7 +32,7 @@ class SR:  # SR for Sonarr or Radarr
         self.clear_url = url.replace("http://", "").replace("https://", "").replace("/", "").replace("sonarr", "")
         self.username = username
         self.password = password
-        self.http_pw_url = "http://{}:{}@{}".format(self.username, self.password, self.clear_url)
+        self.http_pw_url = "http://{}:{}@{}".format(self.username, self.password, self.clear_url)  # HTTP auth url
         self.api_key = requests.get(self.http_pw_url, stream=True, timeout=10).text.split("ApiKey     : '")[1].split("'")[0]
 
     def get_completed(self):
@@ -40,13 +40,13 @@ class SR:  # SR for Sonarr or Radarr
         rdic = loads(r.text)
         items = []
         for x in rdic:
-            if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one error
+            if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one file
                 continue
-            if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue may not be fake
+            if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
                 continue
             if "No files found are eligible for import in" not in x['statusMessages'][0]['messages'][0]:
                 continue
             items.append(
                 SR.Item(x['statusMessages'][0]['messages'][0].replace("No files found are eligible for import in ", ""),
-                        x['id']))
+                        x['id']))  # extracts path and id for downloads, and creates Item objects for each
         return items
