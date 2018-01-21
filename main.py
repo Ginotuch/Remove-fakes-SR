@@ -13,7 +13,18 @@ import requests
 
 
 def main():
-    pass
+    services = load_services()
+    while True:
+        pass
+
+
+def load_services():
+    services = []
+    with open("SR.config") as configfile:
+        for service in configfile.read().split():
+            service = service.split(":")
+            services.append(SR(service[0], service[1], service[2]))
+    return services
 
 
 class SR:  # SR for Sonarr or Radarr
