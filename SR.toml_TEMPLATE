@@ -1,0 +1,9 @@
+[server1]
+url = "http://IP:PORT/"
+username = "usr"
+password = "pwd"
+
+[server2]
+url = "http://IP:PORT/"
+username = "usr"
+password = "pwd"
