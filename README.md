@@ -8,7 +8,7 @@ finished downloads of which Sonarr/Radarr can't find any valid files to import.
 If any fakes exist then it will blacklist the files through the Sonarr/Radarr API.
 
 
-###Notes
+##Notes
 * Only works on HTTP not HTTPS
 * Only works if using HTTP auth (browser popup) login. No login or form login will not work
 * Must have SR.toml file in the format of SR.toml_TEMPLATE
