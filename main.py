@@ -25,14 +25,26 @@ def main():
 
 class SR:  # SR for Sonarr or Radarr
     class Item:
-        def __init__(self, path, item_id, http_pw_url, api_key):
-            self.path = path
+        def __init__(self, item_id, http_pw_url, api_key, usenet, torrent, folder_name, d_type, path):
             self.item_id = item_id
             self.http_pw_url = http_pw_url
             self.api_key = api_key
+            self.usenet = usenet  # Completed usenet path
+            self.torrent = torrent  # Completed torrents path
+            self.folder_name = folder_name
+            self.d_type = d_type
+            self.path = path if path is not None else self.find_path()
+
+        def find_path(self):
+            c_path = self.usenet if self.d_type == "usenet" else self.torrent
+            for folder_path, folder_names, file_names in os.walk(c_path):
+                for folder_name in folder_names:
+                    if folder_name == self.folder_name:
+                        return os.path.join(folder_path, folder_name)
 
         def kill(self):
-            requests.delete(self.http_pw_url + "/api/queue/{}?blacklist=true&apikey={}".format(self.item_id, self.api_key))
+            requests.delete(
+                self.http_pw_url + "/api/queue/{}?blacklist=true&apikey={}".format(self.item_id, self.api_key))
 
         def __repr__(self):
             return "ID:{} PATH:\"{}\"".format(self.item_id, self.path)
@@ -40,39 +52,44 @@ class SR:  # SR for Sonarr or Radarr
         def __str__(self):
             return "ID:{} PATH:{}".format(self.item_id, self.path)
 
-    def __init__(self, url, username, password):
+    def __init__(self, url, username, password, usenet, torrents):
         self.clear_url = url.replace("http://", "").replace("https://", "").replace("/", "").replace("sonarr", "")
         self.username = username
         self.password = password
         self.http_pw_url = "http://{}:{}@{}".format(self.username, self.password, self.clear_url)  # HTTP auth url
         self.api_key = \
-        requests.get(self.http_pw_url, stream=True, timeout=10).text.split("ApiKey     : '")[1].split("'")[0]
+            requests.get(self.http_pw_url, stream=True, timeout=10).text.split("ApiKey     : '")[1].split("'")[0]
+        self.usenet = usenet
+        self.torrents = torrents
 
     def kill_fakes(self):
         completed = self.get_completed()
         if len(completed) < 1:
             return
         for download in completed:
-            f_dir = os.listdir(download.path)
-            if "codec" in [x.lower() for x in f_dir]:
-                download.kill()
-            if True in [".exe" in x.lower() for x in f_dir]:
-                download.kill()
+            for folder_path, folder_names, file_names in os.walk(download.path):
+                for item in folder_names, file_names:
+                    for a in item:
+                        if ".exe" in a.lower() or "codec" in a.lower() or ".wmv" in a.lower():
+                            download.kill()
+            # f_dir = os.listdir(download.path)
+            # if True in [".exe" in x.lower() or "codec" in x.lower() for x in f_dir]:
+            #     download.kill()
 
     def get_completed(self):
         r = requests.get(self.http_pw_url + "/api/queue?apikey=" + self.api_key)
         rdic = loads(r.text)
         items = []
         for x in rdic:
+            path = None
             if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one file
                 continue
             if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
                 continue
-            if "No files found are eligible for import in" not in x['statusMessages'][0]['messages'][0]:
-                continue
+            if "No files found are eligible for import in" in x['statusMessages'][0]['messages'][0]:
+                path = x['statusMessages'][0]['messages'][0].replace("No files found are eligible for import in ", "")
             items.append(
-                SR.Item(x['statusMessages'][0]['messages'][0].replace("No files found are eligible for import in ", ""),
-                        x['id'], self.http_pw_url, self.api_key))  # extracts path and id for downloads, and creates Item objects for each
+                SR.Item(x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'], x['protocol'], path))  # extracts path and id for downloads, and creates Item objects for each
         return items
 
     @staticmethod
@@ -80,7 +97,7 @@ class SR:  # SR for Sonarr or Radarr
         services = []
         with open("SR.toml") as configfile:
             for service in toml.loads(configfile.read()).items():
-                services.append(SR(service[1]["url"], service[1]["username"], service[1]["password"]))
+                services.append(SR(service[1]["url"], service[1]["username"], service[1]["password"], service[1]["usenet"], service[1]["torrent"]))
         return services
 
     def __repr__(self):
