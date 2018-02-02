@@ -9,7 +9,7 @@ A: "I made this for my setup, if you want to add support for other setups, feel 
 
 import os
 from json import loads
-from time import sleep
+from time import sleep, ctime
 
 import requests
 import toml
@@ -18,6 +18,7 @@ import toml
 def main():
     services = SR.load_services()
     while True:
+        print("Checking for fakes:", ctime())
         for service in services:
             service.kill_fakes()
         sleep(120)

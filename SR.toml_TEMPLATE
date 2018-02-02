@@ -2,8 +2,12 @@
 url = "http://IP:PORT/"
 username = "usr"
 password = "pwd"
+usenet = "/PATH/TO/COMPLETED/DOWNLOADS"
+torrent = "/PATH/TO/COMPLETED/DOWNLOADS"
 
 [server2]
 url = "http://IP:PORT/"
 username = "usr"
 password = "pwd"
+usenet = "/PATH/TO/COMPLETED/DOWNLOADS"
+torrent = "/PATH/TO/COMPLETED/DOWNLOADS"
