@@ -45,12 +45,13 @@ class SR:  # SR for Sonarr or Radarr
         def kill(self):
             requests.delete(
                 self.http_pw_url + "/api/queue/{}?blacklist=true&apikey={}".format(self.item_id, self.api_key))
+            print("KILLED", self)
 
         def __repr__(self):
             return "ID:{} PATH:\"{}\"".format(self.item_id, self.path)
 
         def __str__(self):
-            return "ID:{} PATH:{}".format(self.item_id, self.path)
+            return "NAME:{} ID:{} PATH:{}".format(self.folder_name, self.item_id, self.path)
 
     def __init__(self, url, username, password, usenet, torrents):
         self.clear_url = url.replace("http://", "").replace("https://", "").replace("/", "").replace("sonarr", "")
@@ -72,9 +73,6 @@ class SR:  # SR for Sonarr or Radarr
                     for a in item:
                         if ".exe" in a.lower() or "codec" in a.lower() or ".wmv" in a.lower():
                             download.kill()
-            # f_dir = os.listdir(download.path)
-            # if True in [".exe" in x.lower() or "codec" in x.lower() for x in f_dir]:
-            #     download.kill()
 
     def get_completed(self):
         r = requests.get(self.http_pw_url + "/api/queue?apikey=" + self.api_key)
@@ -98,9 +96,16 @@ class SR:  # SR for Sonarr or Radarr
         with open("SR.toml") as configfile:
             for service in toml.loads(configfile.read()).items():
                 services.append(SR(service[1]["url"], service[1]["username"], service[1]["password"], service[1]["usenet"], service[1]["torrent"]))
+        print("LOADED:")
+        for service in services:
+            print("    ", service)
+        print()
         return services
 
     def __repr__(self):
+        return "URL:\"{}\" USR:\"{}\" PWD:\"{}\"".format(self.clear_url, self.username, self.password)
+
+    def __str__(self):
         return "URL:\"{}\" USR:\"{}\" PWD:\"{}\"".format(self.clear_url, self.username, self.password)
 
 
