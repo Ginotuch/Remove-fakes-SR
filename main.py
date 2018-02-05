@@ -48,6 +48,11 @@ class SR:  # SR for Sonarr or Radarr
                 self.http_pw_url + "/api/queue/{}?blacklist=true&apikey={}".format(self.item_id, self.api_key))
             print("KILLED", self)
 
+        def kill_no_blacklist(self):
+            requests.delete(
+                self.http_pw_url + "/api/queue/{}?blacklist=false&apikey={}".format(self.item_id, self.api_key))
+            print("KILLED", self)
+
         def __repr__(self):
             return "ID:{} PATH:\"{}\"".format(self.item_id, self.path)
 
@@ -82,13 +87,19 @@ class SR:  # SR for Sonarr or Radarr
         for x in rdic:
             path = None
             if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one file
-                continue
+                if len(x['statusMessages'][0]['messages']) != 1:
+                    if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
+                        SR.Item(x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
+                                x['protocol'], path).kill_no_blacklist()  # Deletes duplicate download
+                    else:
+                        continue
             if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
                 continue
             if "No files found are eligible for import in" in x['statusMessages'][0]['messages'][0]:
                 path = x['statusMessages'][0]['messages'][0].replace("No files found are eligible for import in ", "")
             items.append(
-                SR.Item(x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'], x['protocol'], path))  # extracts path and id for downloads, and creates Item objects for each
+                SR.Item(x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'], x['protocol'],
+                        path))  # extracts path and id for downloads, and creates Item objects for each
         return items
 
     @staticmethod
@@ -96,7 +107,9 @@ class SR:  # SR for Sonarr or Radarr
         services = []
         with open("SR.toml") as configfile:
             for service in toml.loads(configfile.read()).items():
-                services.append(SR(service[1]["url"], service[1]["username"], service[1]["password"], service[1]["usenet"], service[1]["torrent"]))
+                services.append(
+                    SR(service[1]["url"], service[1]["username"], service[1]["password"], service[1]["usenet"],
+                       service[1]["torrent"]))
         print("LOADED:")
         for service in services:
             print("    ", service)
