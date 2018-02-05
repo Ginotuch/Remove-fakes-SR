@@ -26,7 +26,8 @@ def main():
 
 class SR:  # SR for Sonarr or Radarr
     class Item:
-        def __init__(self, item_id, http_pw_url, api_key, usenet, torrent, folder_name, d_type, path):
+        def __init__(self, blacklist, item_id, http_pw_url, api_key, usenet, torrent, folder_name, d_type, path):
+            self.doblacklist = blacklist
             self.item_id = item_id
             self.http_pw_url = http_pw_url
             self.api_key = api_key
@@ -45,12 +46,9 @@ class SR:  # SR for Sonarr or Radarr
 
         def kill(self):
             requests.delete(
-                self.http_pw_url + "/api/queue/{}?blacklist=true&apikey={}".format(self.item_id, self.api_key))
-            print("KILLED", self)
-
-        def kill_no_blacklist(self):
-            requests.delete(
-                self.http_pw_url + "/api/queue/{}?blacklist=false&apikey={}".format(self.item_id, self.api_key))
+                self.http_pw_url + "/api/queue/{}?blacklist={}&apikey={}".format(self.item_id,
+                                                                                 str(self.doblacklist).lower(),
+                                                                                 self.api_key))
             print("KILLED", self)
 
         def __repr__(self):
@@ -86,20 +84,21 @@ class SR:  # SR for Sonarr or Radarr
         items = []
         for x in rdic:
             path = None
+            if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
+                items.append(
+                    SR.Item(False, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
+                            x['protocol'],
+                            path))  # Removes duplicate downloads while not blacklisting them
             if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one file
-                if len(x['statusMessages'][0]['messages']) != 1:
-                    if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
-                        SR.Item(x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
-                                x['protocol'], path).kill_no_blacklist()  # Deletes duplicate download
-                    else:
-                        continue
+                continue
             if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
                 continue
             if "No files found are eligible for import in" in x['statusMessages'][0]['messages'][0]:
                 path = x['statusMessages'][0]['messages'][0].replace("No files found are eligible for import in ", "")
             items.append(
-                SR.Item(x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'], x['protocol'],
-                        path))  # extracts path and id for downloads, and creates Item objects for each
+                SR.Item(True, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
+                        x['protocol'],
+                        path))  # extracts path (if available) and id for downloads, and creates Item objects for each
         return items
 
     @staticmethod
