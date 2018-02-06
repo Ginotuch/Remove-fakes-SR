@@ -55,7 +55,7 @@ class SR:  # SR for Sonarr or Radarr
             return "ID:{} PATH:\"{}\"".format(self.item_id, self.path)
 
         def __str__(self):
-            return "NAME:{} ID:{} PATH:{}".format(self.folder_name, self.item_id, self.path)
+            return "NAME:\"{}\" ID:{} PATH:\"{}\"".format(self.folder_name, self.item_id, self.path)
 
     def __init__(self, url, username, password, usenet, torrents):
         self.clear_url = url.replace("http://", "").replace("https://", "").replace("/", "").replace("sonarr", "")
@@ -84,11 +84,12 @@ class SR:  # SR for Sonarr or Radarr
         items = []
         for x in rdic:
             path = None
-            if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
-                items.append(
-                    SR.Item(False, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
-                            x['protocol'],
-                            path))  # Removes duplicate downloads while not blacklisting them
+            if len(x['statusMessages']) == 1:
+                if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
+                    items.append(
+                        SR.Item(False, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
+                                x['protocol'],
+                                path))  # Removes duplicate downloads while not blacklisting them
             if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one file
                 continue
             if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
