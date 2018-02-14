@@ -73,11 +73,14 @@ class SR:  # SR for Sonarr or Radarr
         if len(completed) < 1:
             return
         for download in completed:
+            bad = False
             for folder_path, folder_names, file_names in os.walk(download.path):
                 for item in folder_names, file_names:
                     for a in item:
                         if ".exe" in a.lower() or "codec" in a.lower() or ".wmv" in a.lower():
-                            download.kill()
+                            bad = True
+            if bad:
+                download.kill()
 
     def get_completed(self):
         r = requests.get(self.http_pw_url + "/api/queue?apikey=" + self.api_key)
