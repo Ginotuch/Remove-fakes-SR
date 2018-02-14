@@ -8,6 +8,7 @@ A: "I made this for my setup, if you want to add support for other setups, feel 
 """
 
 import os
+import traceback
 from json import loads
 from time import sleep, ctime
 
@@ -84,23 +85,47 @@ class SR:  # SR for Sonarr or Radarr
         items = []
         for x in rdic:
             path = None
-            if len(x['statusMessages']) == 1:
-                if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
-                    items.append(
-                        SR.Item(False, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
-                                x['protocol'],
-                                path))  # Removes duplicate downloads while not blacklisting them
-            if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one file
-                continue
-            if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
-                continue
-            if "No files found are eligible for import in" in x['statusMessages'][0]['messages'][0]:
-                path = x['statusMessages'][0]['messages'][0].replace("No files found are eligible for import in ", "")
-            items.append(
-                SR.Item(True, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
-                        x['protocol'],
-                        path))  # extracts path (if available) and id for downloads, and creates Item objects for each
+            try:
+                if len(x['statusMessages']) == 1:
+                    if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
+                        items.append(
+                            SR.Item(False, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents,
+                                    x['title'],
+                                    x['protocol'],
+                                    path))  # Removes duplicate downloads while not blacklisting them
+                if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one file
+                    continue
+                if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
+                    continue
+                if "No files found are eligible for import in" in x['statusMessages'][0]['messages'][0]:
+                    path = x['statusMessages'][0]['messbages'][0].replace("No files found are eligible for import in ",
+                                                                          "")
+                items.append(
+                    SR.Item(True, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
+                            x['protocol'],
+                            path))  # extracts path (if available) and id, and creates Item objects for each download
+            except:
+                text = "An error occurred on {} from {} in the get_completed() function:\n{}\n\nThe returned data:\n{}"
+                SR.error_logging(text.format(ctime(), self.clear_url, str(traceback.format_exc()), r.text))
         return items
+
+    @staticmethod
+    def error_logging(error_text):
+        if os.path.exists("logs"):
+            print("ERROR", ctime())
+            files = [f for f in os.listdir("logs") if os.path.isfile(os.path.join("logs", f))]
+            if len(files) == 0:
+                with open("logs/error1.log", 'w') as error_log:
+                    error_log.write(error_text)
+            else:
+                with open("logs/{}".format(
+                        "error{}.log".format(str(max([int(x[5:-4]) for x in files]) + 1))), 'w') as error_log:
+                    error_log.write(error_text)
+        else:
+            print("ERROR", ctime())
+            os.mkdir("logs")
+            with open("logs/error1.log", 'w') as error_log:
+                error_log.write(error_text)
 
     @staticmethod
     def load_services():
