@@ -98,7 +98,7 @@ class SR:  # SR for Sonarr or Radarr
                 if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
                     continue
                 if "No files found are eligible for import in" in x['statusMessages'][0]['messages'][0]:
-                    path = x['statusMessages'][0]['messbages'][0].replace("No files found are eligible for import in ",
+                    path = x['statusMessages'][0]['messages'][0].replace("No files found are eligible for import in ",
                                                                           "")
                 items.append(
                     SR.Item(True, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
