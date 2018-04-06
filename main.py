@@ -1,7 +1,7 @@
 """
 This will check Sonarr and Radarr or fake downloads and delete/blacklist accordingly.
 Only works on HTTP not HTTPS.
-Only works if using HTTP auth (browser popup) login. No security or form login will not work
+Only works if using HTTP auth (browser popup) login. Having no security or not using form login will currently fail.
 
 Q: "Why don't you make it work with https, or other login methods?"
 A: "I made this for my setup, if you want to add support for other setups, feel free"
@@ -89,6 +89,9 @@ class SR:  # SR for Sonarr or Radarr
         for x in rdic:
             path = None
             try:
+                if "status" in x:
+                    if x["status"] == "Pending":
+                        continue
                 if len(x['statusMessages']) == 1:
                     if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
                         items.append(
