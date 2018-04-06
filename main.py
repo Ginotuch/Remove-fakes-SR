@@ -67,6 +67,7 @@ class SR:  # SR for Sonarr or Radarr
             requests.get(self.http_pw_url, stream=True, timeout=10).text.split("ApiKey     : '")[1].split("'")[0]
         self.usenet = usenet
         self.torrents = torrents
+        self.current_work = ""
 
     def kill_fakes(self):
         completed = self.get_completed()
@@ -87,6 +88,7 @@ class SR:  # SR for Sonarr or Radarr
         rdic = loads(r.text)
         items = []
         for x in rdic:
+            self.current_work = x["title"]
             path = None
             try:
                 if "status" in x:
@@ -111,8 +113,8 @@ class SR:  # SR for Sonarr or Radarr
                             x['protocol'],
                             path))  # extracts path (if available) and id, and creates Item objects for each download
             except:
-                text = "An error occurred on {} from {} in the get_completed() function:\n{}\n\nThe returned data:\n{}"
-                SR.error_logging(text.format(ctime(), self.clear_url, str(traceback.format_exc()), r.text))
+                text = "An error occurred on {} from {} in the get_completed() function:\n{}\n\nTitle of error: {}\nThe returned data:\n{}"
+                SR.error_logging(text.format(ctime(), self.clear_url, str(traceback.format_exc()), self.current_work, r.text))
         return items
 
     @staticmethod
