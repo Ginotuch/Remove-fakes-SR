@@ -92,7 +92,7 @@ class SR:  # SR for Sonarr or Radarr
             path = None
             try:
                 if "status" in x:
-                    if x["status"] in ("Pending", "DownloadClientUnavailable"):
+                    if x["status"] in ("Delay", "Pending", "DownloadClientUnavailable"):
                         continue
                 if len(x['statusMessages']) == 1:
                     if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
