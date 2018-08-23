@@ -70,7 +70,7 @@ class SR:  # SR for Sonarr or Radarr
         self.current_work = ""
 
     def kill_fakes(self):
-        completed = self.get_completed()
+        completed = self.get_bad_downloads()
         if len(completed) < 1:
             return
         for download in completed:
@@ -83,11 +83,11 @@ class SR:  # SR for Sonarr or Radarr
             if bad:
                 download.kill()
 
-    def get_completed(self):
+    def get_bad_downloads(self):  # To then delete/discard, is only called by kill_fakes()
         r = requests.get(self.http_pw_url + "/api/queue?apikey=" + self.api_key)
         rdic = loads(r.text)
         items = []
-        for x in rdic:
+        for x in rdic:  # Will append bad downloads to the "items" list and return them to the kill_fakes() function
             self.current_work = x["title"]
             path = None
             try:
@@ -107,38 +107,43 @@ class SR:  # SR for Sonarr or Radarr
                     continue
                 if "No files found are eligible for import in" in x['statusMessages'][0]['messages'][0]:
                     path = x['statusMessages'][0]['messages'][0].replace("No files found are eligible for import in ",
-                                                                          "")
+                                                                         "")
                 items.append(
                     SR.Item(True, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
                             x['protocol'],
                             path))  # extracts path (if available) and id, and creates Item objects for each download
             except:
-                text = "An error occurred on {} from {} in the get_completed() function:\n{}\n\nTitle of error: {}\nThe returned data:\n{}"
-                SR.error_logging(text.format(ctime(), self.clear_url, str(traceback.format_exc()), self.current_work, r.text))
+                text = "An error occurred on {} from {} in the get_bad_downloads() function:\n{}\n\nTitle of error: {}\nThe returned data:\n{}"
+                SR.error_logging(
+                    text.format(ctime(), self.clear_url, str(traceback.format_exc()), self.current_work, r.text))
         return items
 
     @staticmethod
     def error_logging(error_text):
-        if os.path.exists("logs"):
+        cur_dir = os.path.dirname(os.path.realpath(__file__))
+        if os.path.exists(os.path.join(cur_dir, "logs")):
             print("ERROR", ctime())
-            files = [f for f in os.listdir("logs") if os.path.isfile(os.path.join("logs", f))]
+            files = [f for f in os.listdir(os.path.join(cur_dir, "logs")) if
+                     os.path.isfile(os.path.join(cur_dir, "logs", f))]
             if len(files) == 0:
-                with open("logs/error1.log", 'w') as error_log:
+                with open(os.path.join(cur_dir, "logs", "error1.log"), 'w') as error_log:
                     error_log.write(error_text)
             else:
-                with open("logs/{}".format(
-                        "error{}.log".format(str(max([int(x[5:-4]) for x in files]) + 1))), 'w') as error_log:
+                with open(os.path.join(cur_dir, "logs",
+                                       "error{}.log".format(str(max([int(x[5:-4]) for x in files]) + 1))),
+                          'w') as error_log:
                     error_log.write(error_text)
         else:
             print("ERROR", ctime())
             os.mkdir("logs")
-            with open("logs/error1.log", 'w') as error_log:
+            with open(os.path.join(cur_dir, "logs", "error1.log"), 'w') as error_log:
                 error_log.write(error_text)
 
     @staticmethod
     def load_services():
+        dir_path = os.path.dirname(os.path.realpath(__file__))
         services = []
-        with open("SR.toml") as configfile:
+        with open(os.path.join(dir_path, "SR.toml")) as configfile:
             for service in toml.loads(configfile.read()).items():
                 services.append(
                     SR(service[1]["url"], service[1]["username"], service[1]["password"], service[1]["usenet"],
