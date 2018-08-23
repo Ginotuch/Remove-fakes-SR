@@ -108,6 +108,10 @@ class SR:  # SR for Sonarr or Radarr
                 if "No files found are eligible for import in" in x['statusMessages'][0]['messages'][0]:
                     path = x['statusMessages'][0]['messages'][0].replace("No files found are eligible for import in ",
                                                                          "")
+                    if path is None:
+                        raise TypeError("Path was found to be a NoneType")
+                    elif len(path) <= 0:
+                        raise Exception("Path string not long enough")
                 items.append(
                     SR.Item(True, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
                             x['protocol'],
