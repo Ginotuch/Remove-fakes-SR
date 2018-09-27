@@ -71,20 +71,28 @@ class SR:  # SR for Sonarr or Radarr
 
     def kill_fakes(self):
         completed = self.get_bad_downloads()
-        if len(completed) < 1:
-            return
-        for download in completed:
-            bad = False
-            for folder_path, folder_names, file_names in os.walk(download.path):
-                for item in folder_names, file_names:
-                    for a in item:
-                        if ".exe" in a.lower() or "codec" in a.lower() or ".wmv" in a.lower():
-                            bad = True
-            if bad:
-                download.kill()
+        if completed is not False:
+            if len(completed) < 1:
+                return
+            for download in completed:
+                bad = False
+                for folder_path, folder_names, file_names in os.walk(download.path):
+                    for item in folder_names, file_names:
+                        for a in item:
+                            if ".exe" in a.lower() or "codec" in a.lower() or ".wmv" in a.lower():
+                                bad = True
+                if bad:
+                    download.kill()
 
     def get_bad_downloads(self):  # To then delete/discard, is only called by kill_fakes()
-        r = requests.get(self.http_pw_url + "/api/queue?apikey=" + self.api_key)
+        try:
+            r = requests.get(self.http_pw_url + "/api/queue?apikey=" + self.api_key)
+        except:
+            text = "An error occurred on {} from {} in the get_bad_downloads() function (first request):\n{}\n\n\
+            Title of error: {}"
+            SR.error_logging(
+                text.format(ctime(), self.clear_url, str(traceback.format_exc()), self.current_work))
+            return False
         rdic = loads(r.text)
         items = []
         for x in rdic:  # Will append bad downloads to the "items" list and return them to the kill_fakes() function
@@ -117,7 +125,8 @@ class SR:  # SR for Sonarr or Radarr
                             x['protocol'],
                             path))  # extracts path (if available) and id, and creates Item objects for each download
             except:
-                text = "An error occurred on {} from {} in the get_bad_downloads() function:\n{}\n\nTitle of error: {}\nThe returned data:\n{}"
+                text = "An error occurred on {} from {} in the get_bad_downloads() function:\n{}\n\nTitle of error: {}\
+                \nThe returned data:\n{}"
                 SR.error_logging(
                     text.format(ctime(), self.clear_url, str(traceback.format_exc()), self.current_work, r.text))
         return items
@@ -149,6 +158,9 @@ class SR:  # SR for Sonarr or Radarr
         services = []
         with open(os.path.join(dir_path, "SR.toml")) as configfile:
             for service in toml.loads(configfile.read()).items():
+                while SR.check_webpage(service[1]["url"]) != 0:
+                    print("Check on {} failed, waiting 5 seconds".format(service[1]["url"]))
+                    sleep(5)
                 services.append(
                     SR(service[1]["url"], service[1]["username"], service[1]["password"], service[1]["usenet"],
                        service[1]["torrent"]))
@@ -163,6 +175,27 @@ class SR:  # SR for Sonarr or Radarr
 
     def __str__(self):
         return "URL:\"{}\" USR:\"{}\" PWD:\"{}\"".format(self.clear_url, self.username, self.password)
+
+    @staticmethod
+    def check_webpage(url):
+        error_types = {
+            0: "Success",
+            1: "Unknown Error",
+            2: "Timeout",
+            3: "ConnectionError",
+            4: "No protocol specified"
+        }
+        if url[:4].lower() != "http":
+            return 4, error_types[4]
+        try:
+            r = requests.get(url, stream=True, timeout=20, verify=False)
+        except requests.exceptions.Timeout:
+            return 2, error_types[2]
+        except requests.exceptions.ConnectionError:
+            return 3, error_types[3]
+        except:
+            return 1, error_types[1]
+        return 0, error_types[0]
 
 
 if __name__ == "__main__":
