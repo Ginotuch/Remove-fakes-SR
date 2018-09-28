@@ -158,7 +158,7 @@ class SR:  # SR for Sonarr or Radarr
         services = []
         with open(os.path.join(dir_path, "SR.toml")) as configfile:
             for service in toml.loads(configfile.read()).items():
-                while SR.check_webpage(service[1]["url"]) != 0:
+                while SR.check_webpage(service[1]["url"])[0] != 0:
                     print("Check on {} failed, waiting 5 seconds".format(service[1]["url"]))
                     sleep(5)
                 services.append(
