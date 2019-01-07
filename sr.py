@@ -35,6 +35,7 @@ class SR:  # SR for Sonarr or Radarr
                                 bad = True
                 if bad:
                     download.kill()
+                    SR.logging("KILLED: {}".format(str(download)), False)
 
     def get_bad_downloads(self):  # To then delete/discard, is only called by kill_fakes()
         try:
@@ -99,7 +100,7 @@ class SR:  # SR for Sonarr or Radarr
                 with open(os.path.join(cur_dir, folder_name,
                                        "{}{}.log".format(log_name,
                                                          (max([int(x[len(log_name):-4]) for x in files]) + 1))),
-                          'w') as log_file:
+                          'a') as log_file:
                     log_file.write(log_text)
         else:
             print(log_name.upper(), ctime())

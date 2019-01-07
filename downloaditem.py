@@ -5,7 +5,7 @@ from os import walk
 
 class DownloadItem:
     def __init__(self, blacklist, item_id, http_pw_url, api_key, usenet, torrent, folder_name, d_type, path):
-        self.doblacklist = blacklist
+        self.do_blacklist = blacklist
         self.item_id = item_id
         self.http_pw_url = http_pw_url
         self.api_key = api_key
@@ -25,7 +25,7 @@ class DownloadItem:
     def kill(self):
         delete(
             self.http_pw_url + "/api/queue/{}?blacklist={}&apikey={}".format(self.item_id,
-                                                                             str(self.doblacklist).lower(),
+                                                                             str(self.do_blacklist).lower(),
                                                                              self.api_key))
         print("KILLED", self)
 
@@ -33,4 +33,5 @@ class DownloadItem:
         return "ID:{} PATH:\"{}\"".format(self.item_id, self.path)
 
     def __str__(self):
-        return "NAME:\"{}\" ID:{} PATH:\"{}\"".format(self.folder_name, self.item_id, self.path)
+        return "NAME:\"{}\" ID:{} PATH:\"{}\" BLACKLISTED?:{}".format(self.folder_name, self.item_id, self.path,
+                                                                      self.do_blacklist)
