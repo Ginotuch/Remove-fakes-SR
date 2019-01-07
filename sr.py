@@ -45,9 +45,9 @@ class SR:  # SR for Sonarr or Radarr
             SR.logging(
                 text.format(ctime(), self.clear_url, str(traceback.format_exc()), self.current_work), True)
             return False
-        rdic = loads(r.text)  # rdic is all current downloads from Sonarr or Radarr
-        items = []
-        for x in rdic:  # Will append bad downloads to the "items" list and return them to the kill_fakes() function
+        rdic = loads(r.text)  # rdic is a dictionary loaded json of all current downloads from Sonarr or Radarr
+        downloads = []
+        for x in rdic:  # Will append bad downloads to the "downloads" list and return them to the kill_fakes() function
             self.current_work = x["title"]
             path = None
             try:
@@ -56,11 +56,11 @@ class SR:  # SR for Sonarr or Radarr
                         continue
                 if len(x['statusMessages']) == 1:
                     if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
-                        items.append(
+                        downloads.append(
                             DownloadItem(False, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents,
-                                            x['title'],
-                                            x['protocol'],
-                                            path))  # Removes duplicate downloads while not blacklisting them
+                                         x['title'],
+                                         x['protocol'],
+                                         path))  # Removes duplicate downloads while not blacklisting them
                 if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one file
                     continue
                 if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
@@ -72,16 +72,16 @@ class SR:  # SR for Sonarr or Radarr
                         raise TypeError("Path was found to be a NoneType")
                     elif len(path) <= 0:
                         raise Exception("Path string not long enough")
-                items.append(
+                downloads.append(
                     DownloadItem(True, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
-                                    x['protocol'],
-                                    path))  # extracts path (if available) and id, and creates Item objects for each download
+                                 x['protocol'],
+                                 path))  # extracts path/id (if available), and creates DownloadItem objects for each
             except:
                 text = "An error occurred on {} from {} in the get_bad_downloads() function:\n{}\n\nTitle of error: {}\
                 \nThe returned data:\n{}"
                 SR.logging(
                     text.format(ctime(), self.clear_url, str(traceback.format_exc()), self.current_work, r.text), True)
-        return items
+        return downloads
 
     @staticmethod
     def logging(log_text, error):  # error True/False
@@ -97,7 +97,8 @@ class SR:  # SR for Sonarr or Radarr
                     log_file.write(log_text)
             else:
                 with open(os.path.join(cur_dir, folder_name,
-                                       "{}{}.log".format(log_name, (max([int(x[5:-4]) for x in files]) + 1))),
+                                       "{}{}.log".format(log_name,
+                                                         (max([int(x[len(log_name):-4]) for x in files]) + 1))),
                           'w') as log_file:
                     log_file.write(log_text)
         else:
@@ -142,7 +143,7 @@ class SR:  # SR for Sonarr or Radarr
         if url[:4].lower() != "http":
             return 4, error_types[4]
         try:
-            r = requests.get(url, stream=True, timeout=20, verify=False)
+            requests.get(url, stream=True, timeout=20, verify=False)
         except requests.exceptions.Timeout:
             return 2, error_types[2]
         except requests.exceptions.ConnectionError:
