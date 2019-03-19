@@ -21,9 +21,9 @@ class SR:  # SR for Sonarr or Radarr
         self.torrents = torrents
         self.current_work = ""
 
-    def kill_fakes(self):
-        completed = self.get_bad_downloads()
-        if completed is not False:
+    def kill_fakes(self) -> None:
+        completed: list = self.get_bad_downloads()
+        if len(completed) > 0:
             if len(completed) < 1:
                 return
             for download in completed:
@@ -37,7 +37,8 @@ class SR:  # SR for Sonarr or Radarr
                     download.kill()
                     SR.logging("KILLED: {}".format(str(download)), False)
 
-    def get_bad_downloads(self):  # To then delete/discard, is only called by kill_fakes()
+    def get_bad_downloads(self) -> list:  # To then delete/discard, is only called by kill_fakes()
+        downloads = []
         try:
             r = requests.get(self.http_pw_url + "/api/queue?apikey=" + self.api_key)
         except:
@@ -45,47 +46,49 @@ class SR:  # SR for Sonarr or Radarr
             Title of error: {}"
             SR.logging(
                 text.format(ctime(), self.clear_url, str(traceback.format_exc()), self.current_work), True)
-            return False
-        rdic = loads(r.text)  # rdic is a dictionary loaded json of all current downloads from Sonarr or Radarr
-        downloads = []
-        for x in rdic:  # Will append bad downloads to the "downloads" list and return them to the kill_fakes() function
-            self.current_work = x["title"]
-            path = None
-            try:
-                if "status" in x:
-                    if x["status"] in ("Delay", "Pending", "DownloadClientUnavailable"):
+        else:
+            rdic = loads(r.text)  # rdic is a dictionary loaded json of all current downloads from Sonarr or Radarr
+            for x in rdic:  # Will append bad downloads to the "downloads" list
+                self.current_work = x["title"]
+                path = None
+                try:
+                    if "status" in x:
+                        if x["status"] in ("Delay", "Pending", "DownloadClientUnavailable"):
+                            continue
+                    if len(x['statusMessages']) == 1:
+                        if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
+                            downloads.append(
+                                DownloadItem(False, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents,
+                                             x['title'],
+                                             x['protocol'],
+                                             path))  # Removes duplicate downloads while not blacklisting them
+                    if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one file
                         continue
-                if len(x['statusMessages']) == 1:
-                    if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
-                        downloads.append(
-                            DownloadItem(False, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents,
-                                         x['title'],
-                                         x['protocol'],
-                                         path))  # Removes duplicate downloads while not blacklisting them
-                if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one file
-                    continue
-                if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
-                    continue
-                if "No files found are eligible for import in" in x['statusMessages'][0]['messages'][0]:
-                    path = x['statusMessages'][0]['messages'][0].replace("No files found are eligible for import in ",
-                                                                         "")
-                    if path is None:
-                        raise TypeError("Path was found to be a NoneType")
-                    elif len(path) <= 0:
-                        raise Exception("Path string not long enough")
-                downloads.append(
-                    DownloadItem(True, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents, x['title'],
-                                 x['protocol'],
-                                 path))  # extracts path/id (if available), and creates DownloadItem objects for each
-            except:
-                text = "An error occurred on {} from {} in the get_bad_downloads() function:\n{}\n\nTitle of error: {}\
-                \nThe returned data:\n{}"
-                SR.logging(
-                    text.format(ctime(), self.clear_url, str(traceback.format_exc()), self.current_work, r.text), True)
+                    if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
+                        continue
+                    if "No files found are eligible for import in" in x['statusMessages'][0]['messages'][0]:
+                        path = x['statusMessages'][0]['messages'][0].replace(
+                            "No files found are eligible for import in ",
+                            "")
+                        if path is None:
+                            raise TypeError("Path was found to be a NoneType")
+                        elif len(path) <= 0:
+                            raise Exception("Path string not long enough")
+                    downloads.append(
+                        DownloadItem(True, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents,
+                                     x['title'],
+                                     x['protocol'],
+                                     path))  # extracts path/id (if available) and creates DownloadItem objects for each
+                except:
+                    text = "An error occurred on {} from {} in the get_bad_downloads() function:\n{}\n\nTitle of error:\
+                     {}\nThe returned data:\n{}"
+                    SR.logging(
+                        text.format(ctime(), self.clear_url, str(traceback.format_exc()), self.current_work, r.text),
+                        True)
         return downloads
 
     @staticmethod
-    def logging(log_text, error):  # error True/False
+    def logging(log_text, error) -> None:  # error True/False
         cur_dir = os.path.dirname(os.path.realpath(__file__))
         folder_name = "error_logs" if error else "logs"
         log_name = "error" if error else "log"
@@ -109,7 +112,7 @@ class SR:  # SR for Sonarr or Radarr
                 log_file.write(log_text)
 
     @staticmethod
-    def load_services():
+    def load_services() -> list:
         dir_path = os.path.dirname(os.path.realpath(__file__))
         services = []
         with open(os.path.join(dir_path, "SR.toml")) as configfile:
@@ -133,7 +136,7 @@ class SR:  # SR for Sonarr or Radarr
         return "URL:\"{}\" USR:\"{}\" PWD:\"{}\"".format(self.clear_url, self.username, self.password)
 
     @staticmethod
-    def check_webpage(url):
+    def check_webpage(url) -> tuple:
         error_types = {
             0: "Success",
             1: "Unknown Error",

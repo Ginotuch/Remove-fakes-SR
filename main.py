@@ -9,6 +9,7 @@ A: "I made this for my setup, if you want to add support for other setups, feel 
 
 from sr import SR
 from time import sleep, ctime
+import traceback
 
 
 def main():
@@ -21,4 +22,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+        raise ValueError
+    except:  # I know this is bad. It seems to be randomly crashing and not sure why. Only temporary.
+        text = "An error occurred on {}, the error data: {}"
+        SR.logging(text.format(ctime(), str(traceback.format_exc())), True)
