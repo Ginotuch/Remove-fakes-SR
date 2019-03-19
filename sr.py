@@ -27,6 +27,8 @@ class SR:  # SR for Sonarr or Radarr
             if len(completed) < 1:
                 return
             for download in completed:
+                if download.path is None:
+                    continue
                 bad = False
                 for folder_path, folder_names, file_names in os.walk(download.path):
                     for item in folder_names, file_names:

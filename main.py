@@ -24,7 +24,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-        raise ValueError
     except:  # I know this is bad. It seems to be randomly crashing and not sure why. Only temporary.
         text = "An error occurred on {}, the error data: {}"
         SR.logging(text.format(ctime(), str(traceback.format_exc())), True)

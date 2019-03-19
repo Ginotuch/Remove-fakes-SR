@@ -2,4 +2,5 @@
 __pycache*
 test*
 *.toml
-logs
+logs\
+error_logs\
