@@ -33,11 +33,11 @@ class SR:  # SR for Sonarr or Radarr
                 for folder_path, folder_names, file_names in os.walk(download.path):
                     for item in folder_names, file_names:
                         for a in item:
-                            if ".exe" in a.lower() or "codec" in a.lower() or ".wmv" in a.lower():
+                            if ".exe" in a.lower() or ".wmv" in a.lower():  # or "codec" in a.lower()
                                 bad = True
                 if bad:
-                    download.kill()
-                    SR.logging("KILLED: {}".format(str(download)), False)
+                    download.kill(True)
+                SR.logging("KILLED: {}".format(str(download)), False)
 
     def get_bad_downloads(self) -> list:  # To then delete/discard, is only called by kill_fakes()
         downloads = []

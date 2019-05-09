@@ -22,10 +22,12 @@ class DownloadItem:
                 if folder_name == self.folder_name:
                     return join(folder_path, folder_name)
 
-    def kill(self):
+    def kill(self, virusprobably):
+
         delete(
             self.http_pw_url + "/api/queue/{}?blacklist={}&apikey={}".format(self.item_id,
-                                                                             str(self.do_blacklist).lower(),
+                                                                             str(virusprobably if not virusprobably
+                                                                                 else self.do_blacklist).lower(),
                                                                              self.api_key))
         print("KILLED", self)
 
