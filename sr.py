@@ -76,7 +76,7 @@ class SR:  # SR for Sonarr or Radarr
                                                 x['protocol'],
                                                 path)  # extracts path/id (if available) and creates DownloadItem
                                                        # objects for each
-                    if tempdownload.is_bad():
+                    if tempdownload.do_blacklist:
                         downloads.append(tempdownload)
                 except:
                     text = "An error occurred on {} from {} in the get_bad_downloads() function:\n{}\n\nTitle of error:\
