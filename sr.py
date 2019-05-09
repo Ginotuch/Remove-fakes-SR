@@ -37,12 +37,14 @@ class SR:  # SR for Sonarr or Radarr
                                 bad = True
                 if bad:
                     download.kill(True)
+                else:
+                    download.kill(False)
                 SR.logging("KILLED: {}".format(str(download)), False)
 
     def get_bad_downloads(self) -> list:  # To then delete/discard, is only called by kill_fakes()
         downloads = []
         try:
-            r = requests.get(self.http_pw_url + "/api/queue?apikey=" + self.api_key)
+            r = requests.get(self.http_pw_url + "/api/queue?sort_by=timeleft&order=asc&apikey=" + self.api_key, headers={'X-Api-Key':self.api_key})
         except:
             text = "An error occurred on {} from {} in the get_bad_downloads() function (first request):\n{}\n\n\
             Title of error: {}"
@@ -58,12 +60,13 @@ class SR:  # SR for Sonarr or Radarr
                         if x["status"] in ("Delay", "Pending", "DownloadClientUnavailable"):
                             continue
                     if len(x['statusMessages']) == 1:
-                        if "Has the same filesize as existing file" in x['statusMessages'][0]['messages'] or "File quality does not match quality of the grabbed release" in x['statusMessages'][0]['messages']:
+                        if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
                             downloads.append(
                                 DownloadItem(False, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents,
                                              x['title'],
                                              x['protocol'],
                                              path))  # Removes duplicate downloads while not blacklisting them
+                            continue
                     if x['status'] != "Completed" or len(x['statusMessages']) != 1:  # Makes sure only one file
                         continue
                     if len(x['statusMessages'][0]['messages']) != 1:  # If more than one issue then it may not be fake
