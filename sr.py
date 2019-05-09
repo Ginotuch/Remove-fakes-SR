@@ -58,7 +58,7 @@ class SR:  # SR for Sonarr or Radarr
                         if x["status"] in ("Delay", "Pending", "DownloadClientUnavailable"):
                             continue
                     if len(x['statusMessages']) == 1:
-                        if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
+                        if "Has the same filesize as existing file" in x['statusMessages'][0]['messages'] or "File quality does not match quality of the grabbed release" in x['statusMessages'][0]['messages']:
                             downloads.append(
                                 DownloadItem(False, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents,
                                              x['title'],
@@ -90,7 +90,7 @@ class SR:  # SR for Sonarr or Radarr
         return downloads
 
     @staticmethod
-    def logging(log_text, error) -> None:  # error True/False
+    def logging(log_text, error: bool) -> None:
         cur_dir = os.path.dirname(os.path.realpath(__file__))
         folder_name = "error_logs" if error else "logs"
         log_name = "error" if error else "log"
