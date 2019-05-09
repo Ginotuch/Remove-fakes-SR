@@ -24,27 +24,19 @@ class SR:  # SR for Sonarr or Radarr
     def kill_fakes(self) -> None:
         completed: list = self.get_bad_downloads()
         if len(completed) > 0:
-            if len(completed) < 1:
-                return
+            download: DownloadItem = None  # Just so I get nice type hinting
             for download in completed:
                 if download.path is None:
                     continue
-                bad = False
-                for folder_path, folder_names, file_names in os.walk(download.path):
-                    for item in folder_names, file_names:
-                        for a in item:
-                            if ".exe" in a.lower() or ".wmv" in a.lower():  # or "codec" in a.lower()
-                                bad = True
-                if bad:
-                    download.kill(True)
-                else:
-                    download.kill(False)
-                SR.logging("KILLED: {}".format(str(download)), False)
+                download.kill()
+                SR.logging("KILLED: {}".format(str(download)), download.do_blacklist)
 
     def get_bad_downloads(self) -> list:  # To then delete/discard, is only called by kill_fakes()
         downloads = []
         try:
-            r = requests.get(self.http_pw_url + "/api/queue?sort_by=timeleft&order=asc&apikey=" + self.api_key, headers={'X-Api-Key':self.api_key})
+            r = requests.get(self.http_pw_url + "/api/queue?sort_by=timeleft&order=asc&apikey=" + self.api_key,
+                             headers={
+                                 'X-Api-Key': self.api_key})
         except:
             text = "An error occurred on {} from {} in the get_bad_downloads() function (first request):\n{}\n\n\
             Title of error: {}"
@@ -62,7 +54,7 @@ class SR:  # SR for Sonarr or Radarr
                     if len(x['statusMessages']) == 1:
                         if "Has the same filesize as existing file" in x['statusMessages'][0]['messages']:
                             downloads.append(
-                                DownloadItem(False, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents,
+                                DownloadItem(x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents,
                                              x['title'],
                                              x['protocol'],
                                              path))  # Removes duplicate downloads while not blacklisting them
@@ -79,11 +71,13 @@ class SR:  # SR for Sonarr or Radarr
                             raise TypeError("Path was found to be a NoneType")
                         elif len(path) <= 0:
                             raise Exception("Path string not long enough")
-                    downloads.append(
-                        DownloadItem(True, x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents,
-                                     x['title'],
-                                     x['protocol'],
-                                     path))  # extracts path/id (if available) and creates DownloadItem objects for each
+                    tempdownload = DownloadItem(x['id'], self.http_pw_url, self.api_key, self.usenet, self.torrents,
+                                                x['title'],
+                                                x['protocol'],
+                                                path)  # extracts path/id (if available) and creates DownloadItem
+                                                       # objects for each
+                    if tempdownload.is_bad():
+                        downloads.append(tempdownload)
                 except:
                     text = "An error occurred on {} from {} in the get_bad_downloads() function:\n{}\n\nTitle of error:\
                      {}\nThe returned data:\n{}"
